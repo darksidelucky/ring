@@ -9,7 +9,7 @@ async function example() {
     ringApi = new RingApi({
       // Replace with your refresh token
       refreshToken: env.RING_REFRESH_TOKEN!,
-      debug: true,
+      debug: false, // NOTE: set to true only for local debugging — never in production
     }),
     locations = await ringApi.getLocations(),
     allCameras = await ringApi.getCameras()

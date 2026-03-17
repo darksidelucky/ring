@@ -516,32 +516,58 @@
     es.onerror = () => { statusEl.textContent = '○ reconnecting…' ; statusEl.style.color = 'var(--yellow)' }
 
     es.onmessage = (e) => {
-      const { cameraId, cameraName, jpegBase64, at } = JSON.parse(e.data)
+      // MED-8: JSON.parse error boundary
+      let payload
+      try { payload = JSON.parse(e.data) } catch (err) { console.warn('SSE parse error:', err); return }
+      const { cameraId, cameraName, jpegBase64, at } = payload
       const time = new Date(at).toLocaleTimeString()
+      const dataUri = `data:image/jpeg;base64,${jpegBase64}`
 
       if (placeholder) placeholder.remove()
 
+      // MED-2: Build card via DOM APIs, not innerHTML injection, for image src
       const card = document.createElement('div')
       card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;width:280px;flex-shrink:0;cursor:pointer'
-      card.innerHTML = `
-        <img src="data:image/jpeg;base64,${jpegBase64}" style="width:100%;display:block" alt="Motion snapshot" />
-        <div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;font-weight:600">${esc(cameraName)}</span>
-          <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${esc(time)}</span>
-        </div>
-        <div style="padding:0 12px 10px">
-          <a href="data:image/jpeg;base64,${jpegBase64}" download="motion-${esc(cameraName.replace(/\s+/g,'-'))}-${Date.now()}.jpg"
-             style="font-size:12px;color:var(--accent);font-family:var(--mono);text-decoration:none"
-             onclick="event.stopPropagation()">↓ Download</a>
-        </div>
-      `
+
+      const img = document.createElement('img')
+      img.src = dataUri  // safe DOM property assignment
+      img.style.cssText = 'width:100%;display:block'
+      img.alt = 'Motion snapshot'
+
+      const meta = document.createElement('div')
+      meta.style.cssText = 'padding:10px 12px;display:flex;justify-content:space-between;align-items:center'
+      const nameEl = document.createElement('span')
+      nameEl.style.cssText = 'font-size:13px;font-weight:600'
+      nameEl.textContent = cameraName
+      const timeEl2 = document.createElement('span')
+      timeEl2.style.cssText = 'font-size:11px;color:var(--muted);font-family:var(--mono)'
+      timeEl2.textContent = time
+      meta.append(nameEl, timeEl2)
+
+      const dlRow = document.createElement('div')
+      dlRow.style.cssText = 'padding:0 12px 10px'
+      const dlLink = document.createElement('a')
+      dlLink.href = dataUri
+      dlLink.download = `motion-${cameraName.replace(/\s+/g,'-')}-${Date.now()}.jpg`
+      dlLink.style.cssText = 'font-size:12px;color:var(--accent);font-family:var(--mono);text-decoration:none'
+      dlLink.textContent = '↓ Download'
+      dlLink.onclick = (ev) => ev.stopPropagation()
+      dlRow.append(dlLink)
+
+      card.append(img, meta, dlRow)
+
       // Click to open in modal
       card.onclick = () => {
-        document.getElementById('modalTitle').textContent = `${esc(cameraName)} — Motion`
+        document.getElementById('modalTitle').textContent = `${cameraName} — Motion`
         document.getElementById('modalTime').textContent = time
-        document.getElementById('modalBody').innerHTML = `<img src="data:image/jpeg;base64,${jpegBase64}" alt="Motion snapshot" />`
+        const modalImg = document.createElement('img')
+        modalImg.src = dataUri
+        modalImg.alt = 'Motion snapshot'
+        const modalBody = document.getElementById('modalBody')
+        modalBody.innerHTML = ''
+        modalBody.appendChild(modalImg)
         const dl = document.getElementById('modalDownload')
-        dl.href = `data:image/jpeg;base64,${jpegBase64}`
+        dl.href = dataUri
         dl.download = `motion-${cameraName.replace(/\s+/g,'-')}-${Date.now()}.jpg`
         document.getElementById('snapshotModal').classList.add('open')
       }

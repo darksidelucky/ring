@@ -4,7 +4,7 @@ import { RingApi } from 'ring-client-api'
 async function example() {
   const ringApi = new RingApi({
       refreshToken: process.env.RING_REFRESH_TOKEN!,
-      debug: true,
+      debug: false, // NOTE: set to true only for local debugging — never in production
     }),
     [location] = await ringApi.getLocations(),
     [chime] = location.chimes,

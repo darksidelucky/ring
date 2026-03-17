@@ -42,4 +42,6 @@ export async function logRefreshToken() {
   console.log(`"refreshToken": "${refreshToken}"`)
 }
 
-process.on('unhandledRejection', () => {})
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason)
+})
