@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ring API Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #273548;
+      --border: #334155;
+      --accent: #38bdf8;
+      --accent2: #0ea5e9;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --green: #22c55e;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --font: 'Segoe UI', system-ui, sans-serif;
+      --mono: 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header svg { color: var(--accent); }
+
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.02em; }
+    header span { color: var(--muted); font-size: 13px; margin-left: auto; font-family: var(--mono); }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.err { background: var(--red); }
+
+    main { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      margin-top: 32px;
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      transition: border-color 0.15s;
+      cursor: pointer;
+    }
+    .card:hover { border-color: var(--accent2); }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-sub { font-size: 12px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-online { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-offline { background: rgba(239,68,68,0.12); color: var(--red); }
+    .badge-unknown { background: rgba(148,163,184,0.12); color: var(--muted); }
+
+    .stats { display: flex; gap: 20px; margin-top: 10px; }
+    .stat { font-size: 12px; color: var(--muted); }
+    .stat strong { color: var(--text); font-size: 18px; font-weight: 700; display: block; font-family: var(--mono); }
+
+    .events-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .events-panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .events-panel-header h3 { font-size: 14px; font-weight: 600; }
+    .events-panel-header span { font-size: 12px; color: var(--muted); }
+
+    .event-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      font-size: 13px;
+    }
+    .event-row:last-child { border-bottom: none; }
+
+    .event-kind {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      min-width: 60px;
+      text-align: center;
+    }
+    .event-kind-motion { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .event-kind-ding { background: rgba(56,189,248,0.12); color: var(--accent); }
+    .event-kind-on_demand { background: rgba(34,197,94,0.12); color: var(--green); }
+
+    .event-time { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: auto; }
+    .event-rec { font-size: 11px; color: var(--muted); }
+    .event-rec.ready { color: var(--green); }
+
+    .devices-table {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--surface2); }
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+    }
+    td {
+      padding: 11px 16px;
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+    td.mono { font-family: var(--mono); color: var(--muted); font-size: 12px; }
+
+    .loading { color: var(--muted); font-size: 14px; padding: 24px 0; }
+    .error-msg { color: var(--red); font-size: 13px; }
+
+    .selector-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    select {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    select:focus { outline: none; border-color: var(--accent); }
+
+    button.refresh-btn {
+      background: var(--surface2);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--mono);
+    }
+    button.refresh-btn:hover { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+
+    button.snapshot-btn {
+      background: rgba(56,189,248,0.1);
+      color: var(--accent);
+      border: 1px solid var(--accent2);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: var(--mono);
+      margin-top: 12px;
+      width: 100%;
+      transition: background 0.15s;
+    }
+    button.snapshot-btn:hover { background: rgba(56,189,248,0.2); }
+    button.snapshot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Snapshot modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 14px; font-weight: 600; }
+    .modal-header span { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+    .modal-close {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 20px; line-height: 1; padding: 0 4px;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 16px; overflow: auto; }
+    .modal-body img { display: block; max-width: 100%; border-radius: 6px; }
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .modal-footer a {
+      color: var(--accent);
+      font-size: 13px;
+      font-family: var(--mono);
+      text-decoration: none;
+    }
+    .modal-footer a:hover { text-decoration: underline; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 32px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+  </svg>
+  <h1>Ring API Dashboard</h1>
+  <span><span class="status-dot" id="statusDot"></span><span id="statusText">connecting…</span></span>
+</header>
+
+<!-- Snapshot modal -->
+<div class="modal-overlay" id="snapshotModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Snapshot</h3>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="modalTime"></span>
+        <button class="modal-close" onclick="document.getElementById('snapshotModal').classList.remove('open')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modalBody"><div class="spinner"></div></div>
+    <div class="modal-footer">
+      <a id="modalDownload" href="#" download>↓ Download</a>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="section-title">Motion Snapshots <span style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;margin-left:8px" id="motionStatus">connecting…</span></div>
+  <div id="motionFeed" style="display:flex;flex-wrap:wrap;gap:12px;min-height:80px;align-items:flex-start">
+    <p class="loading" id="motionPlaceholder">Waiting for motion events…</p>
+  </div>
+
+  <div class="section-title" style="margin-top:32px">Locations</div>
+  <div class="grid" id="locationsGrid"><p class="loading">Loading…</p></div>
+
+  <div class="section-title" style="margin-top:40px">Cameras</div>
+  <div class="grid" id="camerasGrid"><p class="loading">Loading…</p></div>
+
+  <div class="section-title" style="margin-top:40px">Recent Camera Events</div>
+  <div class="selector-row">
+    <select id="cameraSelect"><option value="">Select a camera…</option></select>
+    <button class="refresh-btn" onclick="loadEvents()">↻ Refresh</button>
+  </div>
+  <div class="events-panel" id="eventsPanel">
+    <div class="events-panel-header"><h3>Events</h3><span>Select a camera above</span></div>
+  </div>
+
+  <div class="section-title" style="margin-top:40px">Brivo Access Events</div>
+  <div class="events-panel" id="brivoPanel">
+    <div class="events-panel-header"><h3>Loading…</h3></div>
+  </div>
+
+  <div class="section-title" style="margin-top:40px">Devices</div>
+  <div class="selector-row">
+    <select id="locationSelect"><option value="">Select a location…</option></select>
+    <button class="refresh-btn" onclick="loadDevices()">↻ Refresh</button>
+  </div>
+  <div class="devices-table" id="devicesTable">
+    <table><thead><tr><th>Name</th><th>Type</th><th>Battery</th><th>Tamper</th></tr></thead>
+    <tbody id="devicesBody"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px">Select a location above</td></tr></tbody></table>
+  </div>
+</main>
+
+<script>
+  const API = (path) => fetch(path).then(r => r.json())
+
+  async function init() {
+    // Status check
+    try {
+      await API('/api/status')
+      document.getElementById('statusDot').className = 'status-dot ok'
+      document.getElementById('statusText').textContent = 'connected'
+    } catch {
+      document.getElementById('statusDot').className = 'status-dot err'
+      document.getElementById('statusText').textContent = 'error'
+    }
+
+    const [locations, cameras] = await Promise.all([
+      API('/api/locations'),
+      API('/api/cameras'),
+    ])
+    loadBrivoEvents()
+
+    renderLocations(locations)
+    renderCameras(cameras)
+    populateSelects(locations, cameras)
+  }
+
+  function renderLocations(locations) {
+    const el = document.getElementById('locationsGrid')
+    if (!locations.length) { el.innerHTML = '<p class="loading">No locations found</p>'; return }
+    el.innerHTML = locations.map(l => `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${esc(l.name)}</div>
+            <div class="card-sub">${esc(l.id)}</div>
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><strong>${l.cameraCount}</strong>Cameras</div>
+          <div class="stat"><strong>${l.deviceCount}</strong>Devices</div>
+        </div>
+      </div>
+    `).join('')
+  }
+
+  function renderCameras(cameras) {
+    const el = document.getElementById('camerasGrid')
+    if (!cameras.length) { el.innerHTML = '<p class="loading">No cameras found</p>'; return }
+    el.innerHTML = cameras.map(c => {
+      const statusClass = c.isOnline ? 'badge-online' : 'badge-offline'
+      const statusLabel = c.isOnline ? 'Online' : 'Offline'
+      const bat = c.batteryLevel != null ? `${c.batteryLevel}%` : '—'
+      return `
+        <div class="card" onclick="selectCamera('${c.id}','${esc(c.name)}')">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${esc(c.name)}</div>
+              <div class="card-sub">${esc(c.type)}</div>
+            </div>
+            <span class="badge ${statusClass}">${statusLabel}</span>
+          </div>
+          <div class="stats">
+            <div class="stat"><strong>${bat}</strong>Battery</div>
+            ${c.hasLight ? '<div class="stat"><strong>✓</strong>Light</div>' : ''}
+            ${c.hasSiren ? '<div class="stat"><strong>✓</strong>Siren</div>' : ''}
+          </div>
+          <button class="snapshot-btn" onclick="event.stopPropagation(); takeSnapshot('${c.id}','${esc(c.name)}')">📷 Snapshot</button>
+        </div>
+      `
+    }).join('')
+  }
+
+  function populateSelects(locations, cameras) {
+    const cs = document.getElementById('cameraSelect')
+    cameras.forEach(c => {
+      const o = document.createElement('option')
+      o.value = c.id; o.textContent = c.name
+      cs.appendChild(o)
+    })
+
+    const ls = document.getElementById('locationSelect')
+    locations.forEach(l => {
+      const o = document.createElement('option')
+      o.value = l.id; o.textContent = l.name
+      ls.appendChild(o)
+    })
+  }
+
+  function selectCamera(id, name) {
+    document.getElementById('cameraSelect').value = id
+    loadEvents()
+  }
+
+  async function loadEvents() {
+    const id = document.getElementById('cameraSelect').value
+    if (!id) return
+    const panel = document.getElementById('eventsPanel')
+    panel.innerHTML = '<div class="events-panel-header"><h3>Loading…</h3></div>'
+
+    const events = await API(`/api/cameras/${id}/events`)
+    const name = document.getElementById('cameraSelect').selectedOptions[0].text
+
+    if (events.error) {
+      panel.innerHTML = `<div class="events-panel-header"><h3 class="error-msg">${esc(events.error)}</h3></div>`
+      return
+    }
+
+    panel.innerHTML = `
+      <div class="events-panel-header">
+        <h3>${esc(name)}</h3>
+        <span>${events.length} recent events</span>
+      </div>
+      ${events.map(e => {
+        const kindClass = `event-kind-${e.kind.replace(/[^a-z_]/g,'')}`
+        const time = new Date(e.createdAt).toLocaleString()
+        const recClass = e.recordingStatus === 'ready' ? 'ready' : ''
+        return `
+          <div class="event-row">
+            <span class="event-kind ${kindClass}">${esc(e.kind)}</span>
+            <span>${e.answered ? '✓ Answered' : ''}</span>
+            <span class="event-rec ${recClass}">${esc(e.recordingStatus)}</span>
+            <span class="event-time">${esc(time)}</span>
+          </div>
+        `
+      }).join('')}
+    `
+  }
+
+  async function loadDevices() {
+    const id = document.getElementById('locationSelect').value
+    if (!id) return
+    const tbody = document.getElementById('devicesBody')
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px">Loading…</td></tr>'
+
+    const devices = await API(`/api/locations/${id}/devices`)
+
+    if (devices.error) {
+      tbody.innerHTML = `<tr><td colspan="4" class="error-msg">${esc(devices.error)}</td></tr>`
+      return
+    }
+
+    tbody.innerHTML = devices.map(d => `
+      <tr>
+        <td>${esc(d.name)}</td>
+        <td class="mono">${esc(d.type)}</td>
+        <td>${d.batteryLevel != null ? d.batteryLevel + '%' : '—'}</td>
+        <td>${d.tamperStatus ?? '—'}</td>
+      </tr>
+    `).join('')
+  }
+
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;')
+  }
+
+  // Motion SSE feed
+  function connectMotionStream() {
+    const statusEl = document.getElementById('motionStatus')
+    const feed = document.getElementById('motionFeed')
+    const placeholder = document.getElementById('motionPlaceholder')
+
+    const es = new EventSource('/api/motion-stream')
+
+    es.onopen = () => { statusEl.textContent = '● live' ; statusEl.style.color = 'var(--green)' }
+    es.onerror = () => { statusEl.textContent = '○ reconnecting…' ; statusEl.style.color = 'var(--yellow)' }
+
+    es.onmessage = (e) => {
+      const { cameraId, cameraName, jpegBase64, at } = JSON.parse(e.data)
+      const time = new Date(at).toLocaleTimeString()
+
+      if (placeholder) placeholder.remove()
+
+      const card = document.createElement('div')
+      card.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;width:280px;flex-shrink:0;cursor:pointer'
+      card.innerHTML = `
+        <img src="data:image/jpeg;base64,${jpegBase64}" style="width:100%;display:block" alt="Motion snapshot" />
+        <div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:600">${esc(cameraName)}</span>
+          <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${esc(time)}</span>
+        </div>
+        <div style="padding:0 12px 10px">
+          <a href="data:image/jpeg;base64,${jpegBase64}" download="motion-${esc(cameraName.replace(/\s+/g,'-'))}-${Date.now()}.jpg"
+             style="font-size:12px;color:var(--accent);font-family:var(--mono);text-decoration:none"
+             onclick="event.stopPropagation()">↓ Download</a>
+        </div>
+      `
+      // Click to open in modal
+      card.onclick = () => {
+        document.getElementById('modalTitle').textContent = `${esc(cameraName)} — Motion`
+        document.getElementById('modalTime').textContent = time
+        document.getElementById('modalBody').innerHTML = `<img src="data:image/jpeg;base64,${jpegBase64}" alt="Motion snapshot" />`
+        const dl = document.getElementById('modalDownload')
+        dl.href = `data:image/jpeg;base64,${jpegBase64}`
+        dl.download = `motion-${cameraName.replace(/\s+/g,'-')}-${Date.now()}.jpg`
+        document.getElementById('snapshotModal').classList.add('open')
+      }
+
+      // Newest first, cap at 12 cards
+      feed.insertBefore(card, feed.firstChild)
+      const cards = feed.querySelectorAll('div[style*="width:280px"]')
+      if (cards.length > 12) cards[cards.length - 1].remove()
+    }
+  }
+
+  async function loadBrivoEvents() {
+    const panel = document.getElementById('brivoPanel')
+    try {
+      const data = await API('/api/brivo/events?limit=50')
+
+      if (data.error) {
+        panel.innerHTML = `<div class="events-panel-header"><h3 class="error-msg">${esc(data.error)}</h3></div>`
+        return
+      }
+
+      // Brivo returns { data: [...] } or just an array
+      const events = Array.isArray(data) ? data : (data.data || data.items || data.events || [])
+
+      panel.innerHTML = `
+        <div class="events-panel-header">
+          <h3>Recent Access Events</h3>
+          <span>${events.length} events</span>
+        </div>
+        ${events.length === 0 ? '<div class="event-row" style="color:var(--muted)">No events found</div>' : ''}
+        ${events.map(e => {
+          const who = e.credentialName || e.firstName && `${e.firstName} ${e.lastName}` || e.userName || e.user?.name || '—'
+          const door = e.objectName || e.doorName || e.door?.name || e.accessPoint || '—'
+          const site = e.siteName || e.site?.name || ''
+          const action = e.eventType || e.eventName || e.securityAction?.name || e.type || '—'
+          const time = e.occurredAt || e.eventTime || e.timestamp || e.created || ''
+          const timeStr = time ? new Date(time).toLocaleString() : '—'
+          const isFailure = action.toLowerCase().includes('fail') || action.toLowerCase().includes('deny') || action.toLowerCase().includes('invalid')
+          const actionColor = isFailure ? 'var(--red)' : 'var(--green)'
+          return `
+            <div class="event-row">
+              <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:${isFailure ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)'};color:${actionColor};font-family:var(--mono);min-width:80px;text-align:center">${esc(action)}</span>
+              <span style="font-weight:500">${esc(who)}</span>
+              <span style="color:var(--muted)">${esc(door)}${site ? ' · ' + esc(site) : ''}</span>
+              <span class="event-time">${esc(timeStr)}</span>
+            </div>
+          `
+        }).join('')}
+      `
+    } catch (e) {
+      panel.innerHTML = `<div class="events-panel-header"><h3 class="error-msg">${esc(e.message)}</h3></div>`
+    }
+  }
+
+  connectMotionStream()
+
+  async function takeSnapshot(cameraId, cameraName) {
+    const modal = document.getElementById('snapshotModal')
+    const body = document.getElementById('modalBody')
+    const title = document.getElementById('modalTitle')
+    const timeEl = document.getElementById('modalTime')
+    const dl = document.getElementById('modalDownload')
+
+    title.textContent = cameraName
+    timeEl.textContent = ''
+    body.innerHTML = '<div class="spinner"></div>'
+    dl.href = '#'
+    modal.classList.add('open')
+
+    try {
+      const url = `/api/cameras/${encodeURIComponent(cameraId)}/snapshot`
+      const res = await fetch(url)
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }))
+        body.innerHTML = `<p class="error-msg" style="padding:16px">${esc(err.error)}</p>`
+        return
+      }
+
+      const blob = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const now = new Date().toLocaleTimeString()
+
+      body.innerHTML = `<img src="${objectUrl}" alt="Snapshot from ${esc(cameraName)}" />`
+      timeEl.textContent = now
+      dl.href = objectUrl
+      dl.download = `snapshot-${cameraName.replace(/\s+/g,'-')}-${Date.now()}.jpg`
+    } catch (e) {
+      body.innerHTML = `<p class="error-msg" style="padding:16px">${esc(e.message)}</p>`
+    }
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('snapshotModal')) {
+      e.target.classList.remove('open')
+    }
+  }
+
+  init().catch(console.error)
+</script>
+</body>
+</html>

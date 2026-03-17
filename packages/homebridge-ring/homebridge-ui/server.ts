@@ -31,7 +31,8 @@ class PluginUiServer extends HomebridgePluginUiServer {
   }
 
   generateCode = async ({ email, password }: LoginRequest) => {
-    console.log(`Logging in with email '${email}'`)
+    const maskedEmail = email.replace(/(?<=.{2}).(?=[^@]*@)/g, '*')
+    console.log(`Logging in with email '${maskedEmail}'`)
     const storagePath = this.homebridgeStoragePath
     this.restClient = new RingRestClient({
       email,
@@ -59,7 +60,8 @@ class PluginUiServer extends HomebridgePluginUiServer {
   generateToken = async ({ email, password, code }: TokenRequest) => {
     // use the existing restClient to avoid sending a token again
     this.restClient = this.restClient || new RingRestClient({ email, password })
-    console.log(`Getting token for ${email} with code ${code}`)
+    const maskedEmail = email.replace(/(?<=.{2}).(?=[^@]*@)/g, '*')
+    console.log(`Getting token for ${maskedEmail}`)
 
     try {
       const authResponse = await this.restClient.getAuth(code)

@@ -181,7 +181,7 @@ export function buildSearchString(search: Record<string, any>) {
     '?' +
     Object.entries(search)
       .filter(([, value]) => value !== undefined && value !== null)
-      .map(([key, value]) => `${key}=${value}`)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
       .join('&')
   )
 }

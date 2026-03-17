@@ -359,7 +359,7 @@ export class RingRestClient {
         // failed request with refresh token
         this.refreshToken = undefined
         this.authConfig = undefined
-        logError(requestError)
+        logError(requestError.message || 'Auth refresh failed')
         return this.getAuth()
       }
 
@@ -568,13 +568,10 @@ export class RingRestClient {
 
       if (response.status) {
         logError(
-          `Request to ${url} failed with status ${
-            response.status
-          }. Response body: ${stringify(response.body)}`,
+          `Request to ${url} failed with status ${response.status}`,
         )
       } else if (!options.allowNoResponse) {
-        logError(`Request to ${url} failed:`)
-        logError(e)
+        logError(`Request to ${url} failed: ${e.message || e}`)
       }
 
       throw e

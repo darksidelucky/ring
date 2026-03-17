@@ -108,7 +108,7 @@ export function getSearchQueryString(
         key = 'pagination_key'
       }
 
-      return `${key}=${value}`
+      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
     })
     .filter((x) => x)
     .join('&')
