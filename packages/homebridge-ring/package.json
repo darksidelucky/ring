@@ -19,7 +19,7 @@
     "werift": "0.22.4"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "eslint-config-shared": "*",
     "homebridge": "1.11.1",
     "tsconfig": "*",
